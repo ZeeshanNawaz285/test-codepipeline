@@ -1,0 +1,285 @@
+# version: 0.2
+
+# env:
+#   variables:
+#     AWS_REGION: "us-east-2"
+#     ECR_REPO_URL: "489994096722.dkr.ecr.us-east-2.amazonaws.com/my-app-repo"
+#     TASK_FAMILY: "my-ecs-task"
+
+# phases:
+#   pre_build:
+#     commands:
+#       - echo "Logging in to Amazon ECR..."
+#       - aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_REPO_URL
+#       - IMAGE_TAG=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c1-7)
+
+#   build:
+#     commands:
+#       - echo "Building the Docker image..."
+#       - docker build -t $ECR_REPO_URL:latest .
+#       - docker tag $ECR_REPO_URL:latest $ECR_REPO_URL:$IMAGE_TAG
+
+#   post_build:
+#     commands:
+#       - echo "Pushing the Docker image to Amazon ECR..."
+#       - docker push $ECR_REPO_URL:latest
+#       - docker push $ECR_REPO_URL:$IMAGE_TAG
+#       - echo "Registering a new ECS Task Definition..."
+#       - |
+#         echo '{
+#           "family": "'"$TASK_FAMILY"'",
+#           "containerDefinitions": [
+#             {
+#               "name": "my-container",
+#               "image": "'"$ECR_REPO_URL:$IMAGE_TAG"'",
+#               "memory": 512,
+#               "cpu": 256,
+#               "essential": true,
+#               "portMappings": [
+#                 {
+#                   "containerPort": 80,
+#                   "hostPort": 80
+#                 }
+#               ]
+#             }
+#           ]
+#         }' > taskdef.json
+#       - aws ecs register-task-definition --cli-input-json file://taskdef.json
+#       - echo "Updating ECS service..."
+#       - aws ecs update-service --cluster nginx-cluster99 --service nginx-service22 --force-new-deployment
+
+# artifacts:
+#   files:
+#     - taskdef.json
+#     - appspec.yml
+
+
+# version: 0.2
+
+# env:
+#   variables:
+#     AWS_REGION: "us-east-2"
+#     ECR_REPO_URL: "489994096722.dkr.ecr.us-east-2.amazonaws.com/my-app-repo"
+
+# phases:
+#   pre_build:
+#     commands:
+#       - echo "Checking AWS CLI version..."
+#       - aws --version
+#       - echo "Checking AWS identity..."
+#       - aws sts get-caller-identity
+#       - echo "Listing ECR repositories..."
+#       - aws ecr describe-repositories --region us-east-2
+#       - echo "Logging in to Amazon ECR..."
+#       - aws ecr get-login-password --region us-east-2 | docker login --username AWS --password-stdin 489994096722.dkr.ecr.us-east-2.amazonaws.com
+#       - echo "Pre-build phase complete."
+
+#   build:
+#     commands:
+#       - echo "Building the Docker image..."
+#       - docker build -t $ECR_REPO_URL:latest .
+#       - docker tag $ECR_REPO_URL:latest $ECR_REPO_URL:$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c1-7)
+
+#   post_build:
+#     commands:
+#       - echo "Pushing the Docker image to Amazon ECR..."
+#       - docker push $ECR_REPO_URL:latest
+#       - docker push $ECR_REPO_URL:$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c1-7)
+#       - printf '[{"name":"my-container","imageUri":"%s"}]' $ECR_REPO_URL:$IMAGE_TAG > taskdef.json
+
+
+# artifacts:
+#   files:
+#     - taskdef.json
+
+
+
+version: 0.2
+
+env:
+  variables:
+    AWS_REGION: "us-east-1"
+    ECR_REPO_URL: "774305598205.dkr.ecr.us-east-1.amazonaws.com/nginx"
+
+phases:
+  pre_build:
+    commands:
+      - echo "Checking AWS CLI version..."
+      - aws --version
+      - echo "Checking AWS identity..."
+      - aws sts get-caller-identity
+      - echo "Listing ECR repositories..."
+      - aws ecr describe-repositories --region $AWS_REGION
+      - echo "Logging in to Amazon ECR..."
+      - aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_REPO_URL
+      - echo "Pre-build phase complete."
+
+  build:
+    commands:
+      - echo "Building the Docker image..."
+      - IMAGE_TAG=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c1-7)
+      - docker build -t $ECR_REPO_URL:latest .
+      - docker tag $ECR_REPO_URL:latest $ECR_REPO_URL:$IMAGE_TAG
+
+  post_build:
+    commands:
+      - echo "Pushing the Docker image to Amazon ECR..."
+      - docker push $ECR_REPO_URL:latest
+      - docker push $ECR_REPO_URL:$IMAGE_TAG
+      - echo "Writing image definitions file..."
+      - printf '[{"name":"nginx-container","imageUri":"%s"}]' "$ECR_REPO_URL:$IMAGE_TAG" > imagedefinitions.json
+      - cat imagedefinitions.json
+
+artifacts:
+  files:
+    - imagedefinitions.json
+
+
+# version: 0.2
+# env:
+#   variables:
+#     AWS_REGION: "us-east-1"
+#     ECR_REPO_URL: "233317620877.dkr.ecr.us-east-1.amazonaws.com/my-app-repo"
+# phases:
+#   pre_build:
+#     commands:
+#       - echo "Checking AWS CLI version..."
+#       - aws --version
+#       - echo "Checking AWS identity..."
+#       - aws sts get-caller-identity
+#       - echo "Listing ECR repositories..."
+#       - aws ecr describe-repositories --region $AWS_REGION
+#       - echo "Logging in to Amazon ECR..."
+#       - aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_REPO_URL
+#       - echo "Pre-build phase complete."
+#   build:
+#     commands:
+#       - echo "Building the Docker image..."
+#       - IMAGE_TAG=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c1-7)
+#       - docker build -t $ECR_REPO_URL:latest .
+#       - docker tag $ECR_REPO_URL:latest $ECR_REPO_URL:$IMAGE_TAG
+#   post_build:
+#     commands:
+#       - echo "Pushing the Docker image to Amazon ECR..."
+#       - docker push $ECR_REPO_URL:latest
+#       - docker push $ECR_REPO_URL:$IMAGE_TAG
+#       - echo "Writing image definitions file..."
+#       - printf '[{"name":"my-container","imageUri":"%s"}]' "$ECR_REPO_URL:$IMAGE_TAG" > imagedefinitions.json
+#       - cat imagedefinitions.json
+#       - echo "Creating appspec.yaml for CodeDeploy blue/green deployment..."
+#       - |
+#         cat > appspec.yaml << EOF
+#         version: 0.0
+#         Resources:
+#           - TargetService:
+#               Type: AWS::ECS::Service
+#               Properties:
+#                 TaskDefinition: "nginx-task"
+#                 LoadBalancerInfo:
+#                   ContainerName: "my-container"
+#                   ContainerPort: 80
+#                 PlatformVersion: "LATEST"
+#         EOF
+#       - cat appspec.yaml
+# artifacts:
+#   files:
+#     - imagedefinitions.json
+#     - appspec.yaml
+
+
+# version: 0.2
+# env:
+#   variables:
+#     AWS_REGION: "us-east-1"
+#     ECR_REPO_URL: "233317620877.dkr.ecr.us-east-1.amazonaws.com/my-app-repo"
+# phases:
+#   pre_build:
+#     commands:
+#       - echo "Checking AWS CLI version..."
+#       - aws --version
+#       - echo "Checking AWS identity..."
+#       - aws sts get-caller-identity
+#       - echo "Listing ECR repositories..."
+#       - aws ecr describe-repositories --region $AWS_REGION
+#       - echo "Logging in to Amazon ECR..."
+#       - aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_REPO_URL
+#       - echo "Checking current directory..."
+#       - pwd
+#       - echo "Listing files in current directory..."
+#       - ls -la
+#       - echo "Pre-build phase complete."
+#   build:
+#     commands:
+#       - echo "Building the Docker image..."
+#       - IMAGE_TAG=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c1-7)
+#       - echo "Image tag: $IMAGE_TAG"
+#       - echo "Checking Docker version..."
+#       - docker version
+#       - echo "Building image with verbose output..."
+#       - docker build --no-cache -t $ECR_REPO_URL:latest . || (echo "Docker build failed" && exit 1)
+#       - docker tag $ECR_REPO_URL:latest $ECR_REPO_URL:$IMAGE_TAG
+#   post_build:
+#     commands:
+#       - echo "Pushing the Docker image to Amazon ECR..."
+#       - docker push $ECR_REPO_URL:latest || (echo "Docker push failed" && exit 1)
+#       - docker push $ECR_REPO_URL:$IMAGE_TAG || (echo "Docker push failed" && exit 1)
+#       - echo "Writing image definitions file..."
+#       - printf '[{"name":"my-container","imageUri":"%s"}]' "$ECR_REPO_URL:$IMAGE_TAG" > imagedefinitions.json
+#       - cat imagedefinitions.json
+#       - echo "Creating appspec.yaml for CodeDeploy blue/green deployment..."
+#       - |
+#         cat << EOF > appspec.yaml
+#         version: 0.0
+#         Resources:
+#           - TargetService:
+#               Type: AWS::ECS::Service
+#               Properties:
+#                 TaskDefinition: "nginx-task"
+#                 LoadBalancerInfo:
+#                   ContainerName: "my-container"
+#                   ContainerPort: 80
+#                 PlatformVersion: "LATEST"
+#         EOF
+#       - cat appspec.yaml
+#       - echo "Creating taskdef.json file..."
+#       - |
+#         cat << EOF > taskdef.json
+#         {
+#           "executionRoleArn": "arn:aws:iam::233317620877:role/ecsTaskExecutionRole",
+#           "containerDefinitions": [
+#             {
+#               "name": "my-container",
+#               "image": "${ECR_REPO_URL}:${IMAGE_TAG}",
+#               "essential": true,
+#               "portMappings": [
+#                 {
+#                   "hostPort": 80,
+#                   "protocol": "tcp",
+#                   "containerPort": 80
+#                 }
+#               ],
+#               "logConfiguration": {
+#                 "logDriver": "awslogs",
+#                 "options": {
+#                   "awslogs-group": "/ecs/my-task-def",
+#                   "awslogs-region": "us-east-1",
+#                   "awslogs-stream-prefix": "ecs"
+#                 }
+#               }
+#             }
+#           ],
+#           "requiresCompatibilities": [
+#             "FARGATE"
+#           ],
+#           "networkMode": "awsvpc",
+#           "cpu": "256",
+#           "memory": "512",
+#           "family": "my-task-def"
+#         }
+#         EOF
+#       - cat taskdef.json
+# artifacts:
+#   files:
+#     - imagedefinitions.json
+#     - appspec.yaml
+#     - taskdef.json
